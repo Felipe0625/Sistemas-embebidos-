@@ -1,0 +1,179 @@
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+char nombre[60];
+unsigned char header[54];
+int alto;
+int ancho;
+
+void Gris(){
+    int i,j;
+    char nombre2[60];
+    unsigned char pixel[3];
+    unsigned char gray;
+    unsigned char en[54];
+
+    //archivo de salida
+    FILE* entrada = fopen(nombre,"rb");
+    printf("Digite nombre del archivo a pasar a blanco y negro \n");
+    scanf_s("%s", nombre2);
+    FILE* salida = fopen(nombre2,"wb");
+
+    fread(en, sizeof(unsigned char), 54, entrada);
+    fwrite(en, sizeof(unsigned char), 54, salida);
+
+    for (i = 0; i < alto; ++i){
+        for (j = 0; j < ancho; ++j){
+            //Hacemos la lectura de los pixeles:
+            fread(pixel, 3, 1, entrada);
+            gray = pixel[0] * 0.3 + pixel[1] * 0.58 + pixel[2] * 0.11;
+            memset(pixel, gray, sizeof(pixel));
+            fwrite(&pixel, 3, 1, salida);
+        }
+    }
+    fclose(entrada);
+    fclose(salida);
+}
+
+void Convolucion(){
+
+    int i,j,k,l,h;
+    char nombre2[60];
+    char m[3][3];
+    char pixel[3];
+    unsigned char gray;
+    char ope;
+    unsigned char en[54];
+
+    char matrixR[ancho][alto];
+
+
+    //archivo de salida
+    FILE* entrada = fopen(nombre,"rb");
+    printf("Digite nombre del archivo a hacer convolucion \n");
+    scanf_s("%s", nombre2);
+    FILE* salida = fopen(nombre2,"wb");
+
+    fread(en, sizeof(unsigned char), 54, entrada);
+    fwrite(en, sizeof(unsigned char), 54, salida);
+
+    printf("digite la matriz:\n");
+    for (i = 0; i < 3; ++i)
+    {
+        for (j = 0; j < 3; ++j)
+        {
+        printf("posicion %d %d \n",i,j);
+        scanf_s("%d",&m[i][j]);
+        }
+    }
+
+    //imprime la matriz
+    printf("Matriz resultante: \n\n");
+    for (i=0; i<3; i++)
+    {
+        for(j=0; j<3; j++)
+        {
+            printf("%d    ", m[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+
+    //PROCESAMIENTO DE LA IMAGEN:
+    //matriz de la imagen:
+    for (i = 0; i < alto; ++i)
+    {
+        for (j = 0; j < ancho; ++j)
+        {
+            if (i==0 && j==0){
+                fread(pixel, 3, 1, entrada);
+                fwrite(&pixel, 3, 1, salida);
+            }
+            if (i==alto && j==alto){
+                fread(pixel, 3, 1, entrada);
+                fwrite(&pixel, 3, 1, salida);
+            }
+
+            fread(pixel, 3, 1, entrada);
+            gray = pixel[0] * 0.3 + pixel[1] * 0.58 + pixel[2] * 0.11;
+            matrixR[i][j]=gray;
+            for(k = 0; k < 3; ++k)
+            {
+                for(l = 0; l < 3; ++l)
+                {
+                    ope=matrixR[i-1+k][j-1+l] * m[k][l];
+                    h=ope+h;
+                 }
+             }
+            memset(pixel,h,sizeof(pixel));
+            fwrite(&pixel, 3, 1, salida);
+            h=0;
+        }
+    }
+    fclose(entrada);
+    fclose(salida);
+}
+
+int main()
+{
+    //entrada de nombre del archivo
+
+    unsigned char marca1, marca2,op;
+
+    //archivo de entrada
+    printf("Bienvenido...\nDigite nombre del archivo a abrir en BMP \n");
+    scanf_s("%s", nombre);
+    FILE* entrada = fopen(nombre,"rb");
+
+    //comprobar si existe el archivo
+    if (entrada==NULL){
+        printf("No encontrado\n");
+        exit (-1); //cierra el programa sino encuentra eso
+    }
+
+    //comprobar si es BMP;
+    marca1 = fgetc(entrada); //Leo los dos primeros bytes
+    marca2 = fgetc(entrada); //si los dos primeros bytes es BM significa que es un BMP
+
+
+    if((marca1!='B') || (marca2!='M')){
+        printf("el documento NO es un archivo BMP");
+        exit(-1);
+    }
+    printf("EL documento SI es un archivo BMP \n");
+    fseek(entrada, 0, SEEK_SET); //devolvemos el apuntador
+
+    fread(header, sizeof(unsigned char), 54, entrada);
+
+    ancho = *(int*)&header[18];
+    alto = abs(*(int*)&header[22]);
+    printf("alto: %d ; ancho: %d   \n", alto, ancho);
+
+    printf("digite que operacion quiere realizar:\n");
+    printf("1: Escala de grises \n");
+    printf("2: Convolucion \n");
+    printf("3: Acabar programa \n");
+    scanf_s("%d",&op);
+
+    switch(op){
+
+        case 1:
+        Gris();
+        break;
+
+        case 2:
+        Convolucion();
+        break;
+
+        case 3:
+        exit(-1);
+        break;
+
+        default:
+        printf("opcion invalida \n");
+    }
+
+    return 0;
+}
